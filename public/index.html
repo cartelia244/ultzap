@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTZAP</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#075e54">
+</head>
+<body>
+    <div id="setup-screen" class="screen">
+        <h1>Bem-vindo ao ULTZAP</h1>
+        <input type="text" id="name-input" placeholder="Seu Nome">
+        <input type="file" id="photo-input" accept="image/*">
+        <button onclick="register()">Entrar</button>
+    </div>
+
+    <div id="main-screen" class="screen hidden">
+        <header>
+            <div class="user-info">
+                <img id="my-photo" src="" alt="">
+                <span id="my-name"></span>
+                <small id="my-number"></small>
+            </div>
+            <button onclick="addContact()">+ Contato</button>
+        </header>
+        
+        <div id="chat-list">
+            <div class="chat-item" onclick="openChat('ULTIIA')">
+                <img src="https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&" alt="AI">
+                <div>
+                    <strong>UltIIA</strong>
+                    <p>Sua assistente inteligente</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-window" class="hidden">
+            <div class="chat-header">
+                <button onclick="backToList()">←</button>
+                <img id="contact-photo" src="" alt="">
+                <span id="contact-name"></span>
+            </div>
+            <div id="messages"></div>
+            <div class="input-area">
+                <input type="text" id="msg-input" placeholder="Mensagem">
+                <button onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
