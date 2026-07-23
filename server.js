@@ -27,7 +27,10 @@ function saveDB() {
 }
 
 function generateUltNumero() {
-    return 'ULT-' + Math.floor(100000 + Math.random() * 900000);
+    const ddd = Math.floor(10 + Math.random() * 89);
+    const part1 = Math.floor(10000 + Math.random() * 89999);
+    const part2 = Math.floor(1000 + Math.random() * 8999);
+    return `+55 ${ddd} ${part1}-${part2}`;
 }
 
 io.on('connection', (socket) => {
@@ -82,6 +85,14 @@ io.on('connection', (socket) => {
     socket.on('get_history', (myNum) => {
         const history = db.messages.filter(m => m.from === myNum || m.to === myNum);
         socket.emit('load_history', history);
+    });
+
+    socket.on('update_profile', ({ ultnumero, bio, photo }) => {
+        if (db.users[ultnumero]) {
+            if (bio) db.users[ultnumero].bio = bio;
+            if (photo) db.users[ultnumero].photo = photo;
+            saveDB();
+        }
     });
 
     socket.on('disconnect', () => {
