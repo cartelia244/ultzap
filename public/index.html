@@ -9,43 +9,93 @@
     <meta name="theme-color" content="#075e54">
 </head>
 <body>
+    <!-- Tela de Cadastro -->
     <div id="setup-screen" class="screen">
-        <h1>Bem-vindo ao ULTZAP</h1>
-        <input type="text" id="name-input" placeholder="Seu Nome">
-        <input type="file" id="photo-input" accept="image/*">
-        <button onclick="register()">Entrar</button>
+        <div class="setup-container">
+            <h1>Dados do Perfil</h1>
+            <p>Insira seu nome e uma foto de perfil opcional</p>
+            <div class="photo-upload" onclick="document.getElementById('photo-input').click()">
+                <img id="preview-photo" src="https://via.placeholder.com/150?text=+" alt="Perfil">
+                <div class="camera-icon">📷</div>
+            </div>
+            <input type="file" id="photo-input" accept="image/*" class="hidden" onchange="previewImage(this)">
+            <input type="text" id="name-input" placeholder="Digite seu nome">
+            <button class="btn-next" onclick="register()">AVANÇAR</button>
+        </div>
     </div>
 
+    <!-- Tela Principal -->
     <div id="main-screen" class="screen hidden">
         <header>
-            <div class="user-info">
-                <img id="my-photo" src="" alt="">
-                <span id="my-name"></span>
-                <small id="my-number"></small>
+            <div class="header-top">
+                <span class="logo">ULTZAP</span>
+                <div class="header-icons">
+                    <button onclick="toggleSettings()">⚙️</button>
+                </div>
             </div>
-            <button onclick="addContact()">+ Contato</button>
+            <nav class="header-tabs">
+                <div class="tab active">CONVERSAS</div>
+                <div class="tab">STATUS</div>
+                <div class="tab">CHAMADAS</div>
+            </nav>
         </header>
         
         <div id="chat-list">
-            <div class="chat-item" onclick="openChat('ULTIIA')">
+            <!-- UltIIA fixa no topo -->
+            <div class="chat-item" onclick="openChat('ULTIIA', 'UltIIA', 'https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&')">
                 <img src="https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&" alt="AI">
-                <div>
+                <div class="chat-info">
                     <strong>UltIIA</strong>
                     <p>Sua assistente inteligente</p>
                 </div>
             </div>
         </div>
 
-        <div id="chat-window" class="hidden">
-            <div class="chat-header">
-                <button onclick="backToList()">←</button>
-                <img id="contact-photo" src="" alt="">
+        <button class="fab" onclick="addContact()">💬</button>
+    </div>
+
+    <!-- Tela de Chat -->
+    <div id="chat-window" class="screen hidden">
+        <div class="chat-header">
+            <button onclick="backToList()">←</button>
+            <img id="contact-photo" src="" alt="">
+            <div class="contact-status">
                 <span id="contact-name"></span>
+                <small>online</small>
             </div>
-            <div id="messages"></div>
-            <div class="input-area">
-                <input type="text" id="msg-input" placeholder="Mensagem">
-                <button onclick="sendMessage()">➤</button>
+        </div>
+        <div id="messages"></div>
+        <div class="input-area">
+            <input type="text" id="msg-input" placeholder="Mensagem">
+            <button onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <!-- Tela de Configurações -->
+    <div id="settings-screen" class="screen hidden">
+        <div class="settings-header">
+            <button onclick="toggleSettings()">←</button>
+            <span>Configurações</span>
+        </div>
+        <div class="profile-preview">
+            <img id="settings-photo" src="" alt="">
+            <div class="profile-details">
+                <h2 id="settings-name"></h2>
+                <p id="settings-bio">Disponível</p>
+            </div>
+        </div>
+        <div class="setting-item">
+            <span class="icon">📱</span>
+            <div>
+                <strong>Número do ULTZAP</strong>
+                <p id="settings-number"></p>
+            </div>
+        </div>
+        <div class="setting-item" onclick="alert('Funcionalidade em breve!')">
+            <span class="icon">ℹ️</span>
+            <div>
+                <strong>Recado</strong>
+                <p>Disponível</p>
             </div>
         </div>
     </div>
