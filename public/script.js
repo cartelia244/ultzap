@@ -23,6 +23,8 @@ function register() {
     socket.emit('register', { name, photo });
 }
 
+const AI_PHOTO = "https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&";
+
 socket.on('registered', (user) => {
     myInfo = user;
     localStorage.setItem('ultzap_user', JSON.stringify(user));
@@ -34,6 +36,26 @@ socket.on('registered', (user) => {
     document.getElementById('settings-name').innerText = user.name;
     document.getElementById('settings-number').innerText = user.ultnumero;
     document.getElementById('settings-photo').src = user.photo;
+
+    // Load AI Chat explicitly if not there
+    createChatItem('ULTIIA', 'UltIIA', AI_PHOTO);
+    
+    // Request history
+    socket.emit('get_history', user.ultnumero);
+});
+
+socket.on('load_history', (history) => {
+    // Basic implementation: if a chat is open, filter and show. 
+    // In a real app, this would populate the chat list with last messages.
+    history.forEach(msg => {
+        // This is a simple way to "remember" who we talked to
+        const other = msg.from === myInfo.ultnumero ? msg.to : msg.from;
+        if (other === 'ULTIIA') {
+             createChatItem('ULTIIA', 'UltIIA', AI_PHOTO);
+        } else {
+             createChatItem(other, other, 'https://via.placeholder.com/50?text=U');
+        }
+    });
 });
 
 function addContact() {
@@ -69,6 +91,9 @@ function openChat(id, name, photo) {
     document.getElementById('contact-name').innerText = name;
     document.getElementById('contact-photo').src = photo;
     document.getElementById('messages').innerHTML = '';
+    
+    // Request history to fill this specific chat
+    socket.emit('get_history', myInfo.ultnumero);
 }
 
 function backToList() {
