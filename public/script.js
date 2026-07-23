@@ -4,17 +4,18 @@ let currentChat = null;
 let profilePhotoBase64 = null;
 const AI_PHOTO = "https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&";
 
-// Permissions
+// Persistência local de mensagens
+let messagesDB = JSON.parse(localStorage.getItem('ultzap_messages')) || [];
+function saveMessages() { localStorage.setItem('ultzap_messages', JSON.stringify(messagesDB)); }
+
 async function requestPermissions() {
     try {
         await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        console.log("Permissões concedidas");
     } catch (err) {
         console.warn("Permissões negadas:", err);
     }
 }
 
-// Image Preview
 function previewImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -40,8 +41,17 @@ socket.on('registered', user => {
     document.getElementById('main-screen').classList.remove('hidden');
     updateSettingsUI();
     requestPermissions();
-    socket.emit('get_history', user.ultnumero);
+    // Reconstruir lista de chats baseada nas mensagens salvas
+    rebuildChatList();
 });
+
+function rebuildChatList() {
+    const uniqueContacts = [...new Set(messagesDB.map(m => m.from === myInfo.ultnumero ? m.to : m.from))];
+    uniqueContacts.forEach(id => {
+        if (id === 'ULTIIA') createChatItem('ULTIIA', 'UltIIA', AI_PHOTO);
+        else createChatItem(id, id, 'https://via.placeholder.com/50?text=U');
+    });
+}
 
 function updateSettingsUI() {
     document.getElementById('settings-name').innerText = myInfo.name;
@@ -57,8 +67,8 @@ function toggleSettings() {
 }
 
 function logout() {
-    if (confirm("Sair da conta?")) {
-        localStorage.removeItem('ultzap_user');
+    if (confirm("Sair da conta? As mensagens locais serão apagadas.")) {
+        localStorage.clear();
         location.reload();
     }
 }
@@ -86,7 +96,10 @@ function openChat(id, name, photo) {
     document.getElementById('contact-name').innerText = name;
     document.getElementById('contact-photo').src = photo;
     document.getElementById('messages').innerHTML = '';
-    socket.emit('get_history', myInfo.ultnumero);
+    
+    // Carregar mensagens do histórico local para ESTA conversa
+    messagesDB.filter(m => (m.from === myInfo.ultnumero && m.to === id) || (m.from === id && m.to === myInfo.ultnumero))
+              .forEach(msg => renderMessage(msg));
 }
 
 function backToList() {
@@ -116,26 +129,21 @@ function sendMessage() {
     const input = document.getElementById('msg-input');
     const text = input.value;
     if (!text || !currentChat) return;
-    socket.emit('send_message', { from: myInfo.ultnumero, to: currentChat, text });
+    const msg = { from: myInfo.ultnumero, to: currentChat, text, timestamp: Date.now() };
+    socket.emit('send_message', msg);
     input.value = '';
 }
 
 socket.on('receive_message', msg => {
+    messagesDB.push(msg);
+    saveMessages();
+    
     const other = msg.from === myInfo.ultnumero ? msg.to : msg.from;
     if (currentChat === other) renderMessage(msg);
     if (msg.from !== myInfo.ultnumero) {
         const photo = msg.from === 'ULTIIA' ? AI_PHOTO : 'https://via.placeholder.com/50?text=U';
         createChatItem(msg.from, msg.from, photo);
     }
-});
-
-socket.on('load_history', history => {
-    history.forEach(msg => {
-        const other = msg.from === myInfo.ultnumero ? msg.to : msg.from;
-        if (other === 'ULTIIA') createChatItem('ULTIIA', 'UltIIA', AI_PHOTO);
-        else createChatItem(other, other, 'https://via.placeholder.com/50?text=U');
-        if (currentChat === other) renderMessage(msg);
-    });
 });
 
 function renderMessage(msg) {
@@ -149,11 +157,13 @@ function renderMessage(msg) {
 // Media & Audio
 function sendMedia(input) {
     if (input.files && input.files[0]) {
+        const file = input.files[0];
         const reader = new FileReader();
-        reader.onload = e => socket.emit('send_message', { 
-            from: myInfo.ultnumero, to: currentChat, text: '[Mídia]', type: 'image', media: e.target.result 
-        });
-        reader.readAsDataURL(input.files[0]);
+        reader.onload = e => {
+            const msg = { from: myInfo.ultnumero, to: currentChat, text: '[Mídia]', type: file.type.startsWith('image') ? 'image' : 'video', media: e.target.result };
+            socket.emit('send_message', msg);
+        };
+        reader.readAsDataURL(file);
     }
 }
 
@@ -166,9 +176,10 @@ async function startRecording() {
     mediaRecorder.onstop = () => {
         const reader = new FileReader();
         reader.readAsDataURL(new Blob(audioChunks));
-        reader.onloadend = () => socket.emit('send_message', { 
-            from: myInfo.ultnumero, to: currentChat, text: '[Áudio]', type: 'audio', media: reader.result 
-        });
+        reader.onloadend = () => {
+            const msg = { from: myInfo.ultnumero, to: currentChat, text: '[Áudio]', type: 'audio', media: reader.result };
+            socket.emit('send_message', msg);
+        };
         audioChunks = [];
     };
     mediaRecorder.start();
