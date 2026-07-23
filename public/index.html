@@ -2,11 +2,11 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ULTZAP</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#075e54">
+    <meta name="theme-color" content="#008069">
 </head>
 <body>
     <!-- Tela de Cadastro -->
@@ -34,40 +34,60 @@
                 </div>
             </div>
             <nav class="header-tabs">
-                <div class="tab active">CONVERSAS</div>
-                <div class="tab">STATUS</div>
-                <div class="tab">CHAMADAS</div>
+                <div class="tab active" onclick="switchTab('conversas')">CONVERSAS</div>
+                <div class="tab" onclick="switchTab('status')">STATUS</div>
+                <div class="tab" onclick="switchTab('chamadas')">CHAMADAS</div>
             </nav>
         </header>
         
-        <div id="chat-list">
-            <!-- UltIIA fixa no topo -->
-            <div class="chat-item" onclick="openChat('ULTIIA', 'UltIIA', 'https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&')">
-                <img src="https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&" alt="AI">
-                <div class="chat-info">
-                    <strong>UltIIA</strong>
-                    <p>Sua assistente inteligente</p>
+        <div id="tab-content">
+            <div id="conversas" class="tab-pane">
+                <div id="chat-list">
+                    <!-- UltIIA fixa -->
+                    <div class="chat-item" onclick="openChat('ULTIIA', 'UltIIA', 'https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&')">
+                        <img src="https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&" alt="AI">
+                        <div class="chat-info">
+                            <strong>UltIIA</strong>
+                            <p>Sua assistente inteligente</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="fab" onclick="addContact()">💬</button>
+            </div>
+            <div id="status" class="tab-pane hidden">
+                <div class="empty-state">
+                    <p>Nenhum status no momento.</p>
+                </div>
+            </div>
+            <div id="chamadas" class="tab-pane hidden">
+                <div class="empty-state">
+                    <p>Nenhuma chamada recente.</p>
                 </div>
             </div>
         </div>
-
-        <button class="fab" onclick="addContact()">💬</button>
     </div>
 
     <!-- Tela de Chat -->
     <div id="chat-window" class="screen hidden">
         <div class="chat-header">
-            <button onclick="backToList()">←</button>
+            <button onclick="backToList()" class="back-btn">←</button>
             <img id="contact-photo" src="" alt="">
             <div class="contact-status">
                 <span id="contact-name"></span>
                 <small>online</small>
             </div>
+            <div class="chat-actions">
+                <button onclick="alert('Ligação em breve!')">📞</button>
+                <button onclick="alert('Chamada de vídeo em breve!')">📹</button>
+            </div>
         </div>
         <div id="messages"></div>
         <div class="input-area">
+            <button class="icon-btn" onclick="document.getElementById('media-input').click()">📎</button>
+            <input type="file" id="media-input" hidden accept="image/*,video/*" onchange="sendMedia(this)">
             <input type="text" id="msg-input" placeholder="Mensagem">
-            <button onclick="sendMessage()">➤</button>
+            <button class="icon-btn" id="audio-btn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()">🎤</button>
+            <button onclick="sendMessage()" class="send-btn">➤</button>
         </div>
     </div>
 
@@ -84,6 +104,13 @@
                 <p id="settings-bio">Disponível</p>
             </div>
         </div>
+        <div class="setting-item" onclick="editBio()">
+            <span class="icon">ℹ️</span>
+            <div>
+                <strong>Recado</strong>
+                <p id="settings-bio-detail">Disponível</p>
+            </div>
+        </div>
         <div class="setting-item">
             <span class="icon">📱</span>
             <div>
@@ -91,11 +118,11 @@
                 <p id="settings-number"></p>
             </div>
         </div>
-        <div class="setting-item" onclick="alert('Funcionalidade em breve!')">
-            <span class="icon">ℹ️</span>
-            <div>
-                <strong>Recado</strong>
-                <p>Disponível</p>
+        <div class="setting-item logout" onclick="logout()">
+            <span class="icon">🚪</span>
+            <div style="color: #d91e1e;">
+                <strong>Sair da conta</strong>
+                <p>Desconectar deste UltZap</p>
             </div>
         </div>
     </div>
