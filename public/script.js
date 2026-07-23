@@ -36,6 +36,10 @@ socket.on('registered', (user) => {
     document.getElementById('settings-name').innerText = user.name;
     document.getElementById('settings-number').innerText = user.ultnumero;
     document.getElementById('settings-photo').src = user.photo;
+    if (user.bio) document.getElementById('settings-bio').innerText = user.bio;
+
+    // Request permissions early
+    requestPermissions();
 
     // Load AI Chat explicitly if not there
     createChatItem('ULTIIA', 'UltIIA', AI_PHOTO);
@@ -142,7 +146,83 @@ if (savedUser) {
     socket.emit('register', { name: user.name, photo: user.photo });
 }
 
-// Service Worker for PWA
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
+function logout() {
+    if (confirm("Deseja realmente sair da conta? Você poderá criar uma nova ou entrar em outra.")) {
+        localStorage.removeItem('ultzap_user');
+        location.reload();
+    }
+}
+
+function requestPermissions() {
+    navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+        .then(() => console.log("Permissões concedidas"))
+        .catch(err => console.warn("Permissões negadas ou erro:", err));
+}
+
+function editBio() {
+    const newBio = prompt("Digite seu novo recado:", document.getElementById('settings-bio').innerText);
+    if (newBio) {
+        document.getElementById('settings-bio').innerText = newBio;
+        myInfo.bio = newBio;
+        localStorage.setItem('ultzap_user', JSON.stringify(myInfo));
+        socket.emit('update_profile', { ultnumero: myInfo.ultnumero, bio: newBio });
+    }
+}
+
+function addContact() {
+    const number = prompt("Digite o número do contato (ex: +55...):");
+    const name = prompt("Nome do contato:");
+    if (number && name) {
+        createChatItem(number, name, 'https://via.placeholder.com/50?text=' + name[0]);
+    }
+}
+
+let mediaRecorder;
+let audioChunks = [];
+
+async function startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+            socket.emit('send_message', { 
+                from: myInfo.ultnumero, 
+                to: currentChat, 
+                text: '[Áudio]', 
+                type: 'audio',
+                media: reader.result 
+            });
+        };
+        audioChunks = [];
+    };
+    mediaRecorder.start();
+    document.getElementById('audio-btn').style.color = 'red';
+}
+
+function stopRecording() {
+    if (mediaRecorder) {
+        mediaRecorder.stop();
+        document.getElementById('audio-btn').style.color = '';
+    }
+}
+
+function sendMedia(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = e => {
+            socket.emit('send_message', { 
+                from: myInfo.ultnumero, 
+                to: currentChat, 
+                text: file.type.startsWith('image') ? '[Foto]' : '[Vídeo]', 
+                type: file.type.startsWith('image') ? 'image' : 'video',
+                media: e.target.result 
+            });
+        };
+        reader.readAsDataURL(file);
+    }
 }
