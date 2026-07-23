@@ -1,23 +1,87 @@
-import express from 'express';
-import axios from 'axios';
-import path from 'path';
-import { fileURLToPath } from 'url';
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const fs = require('fs');
+const Groq = require('groq-sdk');
+require('dotenv').config();
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
-app.use(express.static(__dirname));
 
-app.get('/health', (req, res) => res.status(200).send('OK'));
+const DATA_FILE = 'data.json';
+let db = { users: {}, messages: [] };
 
-app.post('/api/login', async (req, res) => {
-  try {
-    const r = await axios.post('https://saladofuturo.educacao.sp.gov.br/api/login', req.body);
-    if (r.data?.token) return res.json({ sedToken: r.data.token });
-    res.status(401).json({ error: 'Falha' });
-  } catch (e) { res.status(500).json({ error: 'Erro' }); }
+if (fs.existsSync(DATA_FILE)) {
+    db = JSON.parse(fs.readFileSync(DATA_FILE));
+}
+
+function saveDB() {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
+}
+
+function generateUltNumero() {
+    return 'ULT-' + Math.floor(100000 + Math.random() * 900000);
+}
+
+io.on('connection', (socket) => {
+    console.log('User connected');
+
+    socket.on('register', ({ name, photo }) => {
+        let user = Object.values(db.users).find(u => u.name === name); // Simplification
+        if (!user) {
+            const ultnumero = generateUltNumero();
+            user = { name, photo, ultnumero, id: socket.id };
+            db.users[ultnumero] = user;
+            saveDB();
+        }
+        socket.emit('registered', user);
+        socket.join(user.ultnumero);
+    });
+
+    socket.on('send_message', async ({ from, to, text, type = 'text' }) => {
+        const msg = { from, to, text, type, timestamp: new Date() };
+        db.messages.push(msg);
+        saveDB();
+
+        io.to(to).emit('receive_message', msg);
+        io.to(from).emit('receive_message', msg);
+
+        // UltIIA logic
+        if (to === 'ULTIIA' || text.toLowerCase().includes('@ultiia')) {
+            try {
+                const completion = await groq.chat.completions.create({
+                    messages: [{ role: 'user', content: text }],
+                    model: 'llama-3.3-70b-versatile',
+                });
+                const aiMsg = { 
+                    from: 'ULTIIA', 
+                    to: from, 
+                    text: completion.choices[0].message.content, 
+                    type: 'text', 
+                    timestamp: new Date() 
+                };
+                db.messages.push(aiMsg);
+                saveDB();
+                io.to(from).emit('receive_message', aiMsg);
+            } catch (error) {
+                console.error('Groq Error:', error);
+            }
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('Server is UP on port', PORT);
+server.listen(PORT, () => {
+    console.log(`ULTZAP running on port ${PORT}`);
 });
