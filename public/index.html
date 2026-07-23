@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ULTZAP</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#008069">
 </head>
 <body>
@@ -30,99 +29,86 @@
             <div class="header-top">
                 <span class="logo">ULTZAP</span>
                 <div class="header-icons">
-                    <button onclick="toggleSettings()">⚙️</button>
+                    <button>🔍</button>
+                    <button onclick="toggleSettings()">⋮</button>
                 </div>
             </div>
-            <nav class="header-tabs">
-                <div class="tab active" onclick="switchTab('conversas')">CONVERSAS</div>
-                <div class="tab" onclick="switchTab('status')">STATUS</div>
-                <div class="tab" onclick="switchTab('chamadas')">CHAMADAS</div>
-            </nav>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('chats')">Conversas</div>
+                <div class="tab" onclick="switchTab('status')">Status</div>
+                <div class="tab" onclick="switchTab('calls')">Chamadas</div>
+            </div>
         </header>
-        
-        <div id="tab-content">
-            <div id="conversas" class="tab-pane">
-                <div id="chat-list">
-                    <!-- UltIIA fixa -->
-                    <div class="chat-item" onclick="openChat('ULTIIA', 'UltIIA', 'https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&')">
-                        <img src="https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&" alt="AI">
-                        <div class="chat-info">
-                            <strong>UltIIA</strong>
-                            <p>Sua assistente inteligente</p>
-                        </div>
-                    </div>
-                </div>
-                <button class="fab" onclick="addContact()">💬</button>
-            </div>
-            <div id="status" class="tab-pane hidden">
-                <div class="empty-state">
-                    <p>Nenhum status no momento.</p>
-                </div>
-            </div>
-            <div id="chamadas" class="tab-pane hidden">
-                <div class="empty-state">
-                    <p>Nenhuma chamada recente.</p>
-                </div>
-            </div>
+
+        <div id="chats" class="tab-pane">
+            <div id="chat-list"></div>
+            <button class="fab" onclick="addContact()">💬</button>
+        </div>
+
+        <div id="status" class="tab-pane hidden">
+            <div class="empty-state">Nenhum status disponível</div>
+        </div>
+
+        <div id="calls" class="tab-pane hidden">
+            <div class="empty-state">Nenhuma chamada recente</div>
         </div>
     </div>
 
-    <!-- Tela de Chat -->
+    <!-- Janela de Chat -->
     <div id="chat-window" class="screen hidden">
         <div class="chat-header">
-            <button onclick="backToList()" class="back-btn">←</button>
+            <button class="back-btn" onclick="backToList()">←</button>
             <img id="contact-photo" src="" alt="">
-            <div class="contact-status">
-                <span id="contact-name"></span>
-                <small>online</small>
-            </div>
-            <div class="chat-actions">
-                <button onclick="alert('Ligação em breve!')">📞</button>
-                <button onclick="alert('Chamada de vídeo em breve!')">📹</button>
+            <span id="contact-name" style="flex: 1; font-weight: bold;"></span>
+            <div class="header-icons">
+                <button>📹</button>
+                <button>📞</button>
             </div>
         </div>
-        <div id="messages"></div>
+        <div id="messages" class="messages-area"></div>
         <div class="input-area">
             <button class="icon-btn" onclick="document.getElementById('media-input').click()">📎</button>
             <input type="file" id="media-input" hidden accept="image/*,video/*" onchange="sendMedia(this)">
             <input type="text" id="msg-input" placeholder="Mensagem">
             <button class="icon-btn" id="audio-btn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()">🎤</button>
-            <button onclick="sendMessage()" class="send-btn">➤</button>
+            <button class="send-btn" onclick="sendMessage()">➤</button>
         </div>
     </div>
 
     <!-- Tela de Configurações -->
     <div id="settings-screen" class="screen hidden">
         <div class="settings-header">
-            <button onclick="toggleSettings()">←</button>
+            <button class="back-btn" onclick="toggleSettings()">←</button>
             <span>Configurações</span>
         </div>
-        <div class="profile-preview">
-            <img id="settings-photo" src="" alt="">
-            <div class="profile-details">
-                <h2 id="settings-name"></h2>
-                <p id="settings-bio">Disponível</p>
+        <div class="settings-content">
+            <div class="profile-card" onclick="editBio()">
+                <img id="settings-photo" src="" alt="">
+                <div>
+                    <h2 id="settings-name"></h2>
+                    <p id="settings-bio">Disponível</p>
+                </div>
             </div>
-        </div>
-        <div class="setting-item" onclick="editBio()">
-            <span class="icon">ℹ️</span>
-            <div>
-                <strong>Recado</strong>
-                <p id="settings-bio-detail">Disponível</p>
+            <div class="setting-item">
+                <span class="icon">📱</span>
+                <div>
+                    <strong>Número do ULTZAP</strong>
+                    <p id="settings-number"></p>
+                </div>
             </div>
-        </div>
-        <div class="setting-item">
-            <span class="icon">📱</span>
-            <div>
-                <strong>Número do ULTZAP</strong>
-                <p id="settings-number"></p>
+            <div class="setting-item" onclick="editBio()">
+                <span class="icon">ℹ️</span>
+                <div>
+                    <strong>Recado</strong>
+                    <p id="settings-bio-detail">Disponível</p>
+                </div>
             </div>
-        </div>
-        <div class="setting-item logout" onclick="logout()">
-            <span class="icon">🚪</span>
-            <div style="color: #d91e1e;">
-                <strong>Sair da conta</strong>
-                <p>Desconectar deste UltZap</p>
+            <div class="setting-item logout-item" onclick="logout()">
+                <span class="icon">🚪</span>
+                <div>
+                    <strong>Sair da conta</strong>
+                    <p style="color: #d91e1e;">Desconectar deste dispositivo</p>
+                </div>
             </div>
         </div>
     </div>
