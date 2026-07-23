@@ -57,7 +57,10 @@ io.on('connection', (socket) => {
         if (to === 'ULTIIA' || text.toLowerCase().includes('@ultiia')) {
             try {
                 const completion = await groq.chat.completions.create({
-                    messages: [{ role: 'user', content: text }],
+                    messages: [
+                        { role: 'system', content: 'Você é a UltIIA, a assistente inteligente do ULTZAP. Seja prestativa, informal e responda em português.' },
+                        { role: 'user', content: text }
+                    ],
                     model: 'llama-3.3-70b-versatile',
                 });
                 const aiMsg = { 
@@ -74,6 +77,11 @@ io.on('connection', (socket) => {
                 console.error('Groq Error:', error);
             }
         }
+    });
+
+    socket.on('get_history', (myNum) => {
+        const history = db.messages.filter(m => m.from === myNum || m.to === myNum);
+        socket.emit('load_history', history);
     });
 
     socket.on('disconnect', () => {
