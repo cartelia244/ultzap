@@ -4,33 +4,28 @@ let currentChat = null;
 let profilePhotoBase64 = null;
 const AI_PHOTO = "https://cdn.discordapp.com/attachments/1521337815278026875/1521337915106525204/file_000000000784720ea3d8f2a81897b319.png?ex=6a60d018&is=6a5f7e98&hm=c97bd31f748132fba52a29c1495b9d9117347e904bd4ab5d6bef75b643f92282&";
 
-// Persistência local de mensagens
 let messagesDB = JSON.parse(localStorage.getItem('ultzap_messages')) || [];
 function saveMessages() { localStorage.setItem('ultzap_messages', JSON.stringify(messagesDB)); }
 
-// PERMISSÕES E ÁUDIO
 let mediaRecorder;
 let audioChunks = [];
 
-async function requestPermissions() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        console.log("Permissões concedidas");
-        return stream;
-    } catch (err) {
-        alert("Para gravar áudios e usar a câmera, você precisa permitir o acesso no navegador.");
-        console.warn("Permissões negadas:", err);
-    }
-}
-
+// Função robusta para capturar áudio no celular
 async function startRecording() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        
+        // Configuração específica para compatibilidade com iPhone e Android
+        const options = { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4' };
+        mediaRecorder = new MediaRecorder(stream, options);
+        
         audioChunks = [];
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: options.mimeType });
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
             reader.onloadend = () => {
@@ -42,12 +37,15 @@ async function startRecording() {
                     media: reader.result 
                 });
             };
+            // Parar todos os tracks para liberar o microfone
+            stream.getTracks().forEach(track => track.stop());
         };
+
         mediaRecorder.start();
         document.getElementById('audio-btn').style.color = 'red';
-        if (navigator.vibrate) navigator.vibrate(50);
+        document.getElementById('audio-btn').classList.add('recording-animation');
     } catch (err) {
-        alert("Não foi possível acessar o microfone.");
+        alert("Erro ao acessar microfone: " + err.message + ". Verifique as permissões do navegador.");
     }
 }
 
@@ -55,6 +53,7 @@ function stopRecording() {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
         document.getElementById('audio-btn').style.color = '';
+        document.getElementById('audio-btn').classList.remove('recording-animation');
     }
 }
 
@@ -66,7 +65,7 @@ function renderMessage(msg) {
         const audio = document.createElement('audio');
         audio.controls = true;
         audio.src = msg.media;
-        audio.style.width = '200px';
+        audio.style.width = '100%';
         div.appendChild(audio);
     } else if (msg.type === 'image') {
         const img = document.createElement('img');
@@ -82,11 +81,10 @@ function renderMessage(msg) {
     document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 }
 
-// RESTANTE DO CÓDIGO (Cadastro, Tabs, etc)
+// Funções de Interface
 function register() {
     const name = document.getElementById('name-input').value;
     if (!name) return alert("Digite seu nome");
-    
     socket.emit('register', { name, photo: profilePhotoBase64 });
 }
 
@@ -101,7 +99,6 @@ socket.on('registered', user => {
     document.getElementById('settings-photo').src = user.photo || 'https://via.placeholder.com/150';
     
     createChatItem('ULTIIA', 'UltIIA', AI_PHOTO);
-    requestPermissions();
 });
 
 socket.on('receive_message', msg => {
@@ -114,9 +111,7 @@ socket.on('receive_message', msg => {
 function sendMessage() {
     const text = document.getElementById('msg-input').value;
     if (!text || !currentChat) return;
-    
-    const msg = { from: myInfo.ultnumero, to: currentChat, text, type: 'text' };
-    socket.emit('send_message', msg);
+    socket.emit('send_message', { from: myInfo.ultnumero, to: currentChat, text, type: 'text' });
     document.getElementById('msg-input').value = '';
 }
 
@@ -184,7 +179,9 @@ function editBio() {
     const bio = prompt("Novo recado:");
     if (bio) {
         document.getElementById('settings-bio').innerText = bio;
-        document.getElementById('settings-bio-detail').innerText = bio;
+        myInfo.bio = bio;
+        localStorage.setItem('ultzap_user', JSON.stringify(myInfo));
+        socket.emit('update_profile', { ultnumero: myInfo.ultnumero, bio: bio });
     }
 }
 
@@ -215,9 +212,11 @@ function sendMedia(input) {
     }
 }
 
-// Carregamento inicial
+// Inicialização
 const savedUser = localStorage.getItem('ultzap_user');
 if (savedUser) {
     myInfo = JSON.parse(savedUser);
     socket.emit('register', { name: myInfo.name, photo: myInfo.photo });
+    document.getElementById('setup-screen').classList.add('hidden');
+    document.getElementById('main-screen').classList.remove('hidden');
 }
